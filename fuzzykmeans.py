@@ -4,15 +4,80 @@ import matplotlib.pyplot as plt
 from fcmeans import FCM
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans
 
-# Clustering Strategy Interface
-class ClusteringStrategy:
-    def cluster(self, X):
-        raise NotImplementedError
 
-# Fuzzy C-Means Strategy
-class FuzzyCMeansStrategy(ClusteringStrategy):
-    def __init__(self, n_clusters=3):
+def preprocess_data(file_path):
+    data = pd.read_csv(file_path)
+    X = data[['Age', 'Spending Score (1-100)', 'Annual Income (k$)']]
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    return X_scaled, X
+
+
+def determine_optimal_clusters(X_scaled, max_k=10):
+    wcss = []
+    silhouette_scores = []
+
+    for k in range(2, max_k + 1):
+        kmeans = KMeans(n_clusters=k, random_state=42)
+        kmeans.fit(X_scaled)
+        
+        wcss.append(kmeans.inertia_)
+        silhouette_scores.append(silhouette_score(X_scaled, kmeans.labels_))
+
+
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(range(2, max_k + 1), wcss, marker='o')
+    plt.title('Elbow Method')
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('WCSS')
+
+
+    plt.subplot(1, 2, 2)
+    plt.plot(range(2, max_k + 1), silhouette_scores, marker='o')
+    plt.title('Silhouette Scores')
+    plt.xlabel('Number of Clusters (k)')
+    plt.ylabel('Silhouette Score')
+
+    plt.show()
+
+    return silhouette_scores.index(max(silhouette_scores)) + 2
+
+
+def run_clustering(strategy, X_scaled):
+    labels, centers, membership = strategy.cluster(X_scaled)
+
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+    scatter = ax.scatter(X_scaled[:, 0], X_scaled[:, 1], X_scaled[:, 2], c=labels, cmap='viridis', s=50, alpha=0.6, edgecolors='w')
+    
+    ax.scatter(centers[:, 0], centers[:, 1], centers[:, 2], c='red', marker='x', s=100, label='Centroids')
+
+
+    ax.set_title('Fuzzy K-Means Clustering (3D View)')
+    ax.set_xlabel('Age')
+    ax.set_ylabel('Spending Score')
+    ax.set_zlabel('Annual Income')
+
+    plt.legend()
+    plt.colorbar(scatter, label='Cluster Labels')
+    plt.show()
+
+    return labels, membership
+
+def evaluate_clustering(X_scaled, labels, membership):
+
+    sil_score = silhouette_score(X_scaled, labels)
+    print(f'Silhouette Score: {sil_score:.2f}')
+
+    print("\nMembership degrees (top 5 samples):")
+    print(membership[:5])
+
+class FuzzyCMeansStrategy:
+    def __init__(self, n_clusters):
         self.fcm = FCM(n_clusters=n_clusters)
 
     def cluster(self, X):
@@ -21,61 +86,17 @@ class FuzzyCMeansStrategy(ClusteringStrategy):
         centers = self.fcm.centers
         return labels, centers, self.fcm.u
 
-# Data Preprocessing Function
-def preprocess_data(file_path):
-    data = pd.read_csv(file_path)
-    X = data[['Age', 'Spending Score (1-100)']]  # Only use Age and Spending Score
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    return X_scaled, X
-
-# 2D Clustering and Visualization Function
-def run_clustering(strategy, X_scaled, X):
-    labels, centers, membership = strategy.cluster(X_scaled)
-
-    # Create 2D scatter plot
-    plt.figure(figsize=(10, 7))
-
-    # Plot 2D scatter: Age vs Spending Score
-    scatter = plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=labels, cmap='viridis', s=50, alpha=0.6, edgecolors='w')
-    plt.scatter(centers[:, 0], centers[:, 1], c='red', marker='x', s=100, label='Centroids')
-
-    # Set axis labels and title
-    plt.title('Fuzzy K-Means Clustering (2D View)')
-    plt.xlabel('Age')
-    plt.ylabel('Spending Score')
-
-    # Add legend and color bar
-    plt.legend()
-    plt.colorbar(scatter, label='Cluster Labels')
-    plt.show()
-
-    return labels, membership
-
-# Evaluation Function: Silhouette Score and Membership Analysis
-def evaluate_clustering(X_scaled, labels, membership):
-    # Calculate silhouette score
-    sil_score = silhouette_score(X_scaled, labels)
-    print(f'Silhouette Score: {sil_score:.2f}')
-
-    # Analyze membership degrees (soft clustering)
-    print("\nMembership degrees (top 5 samples):")
-    print(membership[:5])  # Print top 5 to avoid large output
-
-# Main function to run the fuzzy k-means clustering and evaluation
 def main():
-    # Preprocess the data
     X_scaled, X = preprocess_data('Mall_customers.csv')
 
-    # Choose the clustering strategy (Fuzzy C-Means here)
-    clustering_strategy = FuzzyCMeansStrategy(n_clusters=3)
+    optimal_k = determine_optimal_clusters(X_scaled, max_k=10)
+    print(f'Optimal number of clusters determined: {optimal_k}')
 
-    # Run the clustering and 2D visualization
-    labels, membership = run_clustering(clustering_strategy, X_scaled, X)
+    clustering_strategy = FuzzyCMeansStrategy(n_clusters=optimal_k)
 
-    # Evaluate the clustering result
+    labels, membership = run_clustering(clustering_strategy, X_scaled)
+
     evaluate_clustering(X_scaled, labels, membership)
 
-# Execute the main function
 if __name__ == "__main__":
     main()
