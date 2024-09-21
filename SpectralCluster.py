@@ -60,7 +60,7 @@ def main():
     X_scaled, X = preprocess_data('Mall_customers.csv')
 
     # Choose the clustering strategy (Spectral Clustering here)
-    clustering_strategy = SpectralClusteringStrategy(n_clusters=3)
+    clustering_strategy = SpectralClusteringStrategy(n_clusters=5)
 
     # Run the clustering and 2D visualization
     labels = run_clustering(clustering_strategy, X_scaled, X)
