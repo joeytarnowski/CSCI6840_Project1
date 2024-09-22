@@ -92,7 +92,7 @@ class FuzzyCMeansStrategy:
         return labels, centers, self.fcm.u
 
 def main():
-    X_scaled, X = preprocess_data('Mall_customers.csv')
+    X_scaled, X = preprocess_data('Mall_Customers.csv')
 
     optimal_k = determine_optimal_clusters(X_scaled, max_k=10)
     print(f'Optimal number of clusters determined: {optimal_k}')
