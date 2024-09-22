@@ -46,16 +46,20 @@ def determine_optimal_clusters(X_scaled, max_k=10):
     return silhouette_scores.index(max(silhouette_scores)) + 2
 
 
-def run_clustering(strategy, X_scaled):
+def run_clustering(strategy, X_scaled, X):
     labels, centers, membership = strategy.cluster(X_scaled)
 
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')
 
-    scatter = ax.scatter(X_scaled[:, 0], X_scaled[:, 1], X_scaled[:, 2], c=labels, cmap='viridis', s=50, alpha=0.6, edgecolors='w')
+    # Use original data for plotting
+    scatter = ax.scatter(X['Age'], X['Spending Score (1-100)'], X['Annual Income (k$)'], 
+                         c=labels, cmap='viridis', s=50, alpha=0.6, edgecolors='w')
     
-    ax.scatter(centers[:, 0], centers[:, 1], centers[:, 2], c='red', marker='x', s=100, label='Centroids')
-
+    # Transform the cluster centers to the original scale
+    original_centers = StandardScaler().fit(X).inverse_transform(centers)
+    ax.scatter(original_centers[:, 0], original_centers[:, 1], original_centers[:, 2], 
+               c='red', marker='x', s=100, label='Centroids')
 
     ax.set_title('Fuzzy K-Means Clustering (3D View)')
     ax.set_xlabel('Age')
@@ -67,6 +71,7 @@ def run_clustering(strategy, X_scaled):
     plt.show()
 
     return labels, membership
+
 
 def evaluate_clustering(X_scaled, labels, membership):
 
@@ -94,7 +99,7 @@ def main():
 
     clustering_strategy = FuzzyCMeansStrategy(n_clusters=optimal_k)
 
-    labels, membership = run_clustering(clustering_strategy, X_scaled)
+    labels, membership = run_clustering(clustering_strategy, X_scaled, X)
 
     evaluate_clustering(X_scaled, labels, membership)
 
