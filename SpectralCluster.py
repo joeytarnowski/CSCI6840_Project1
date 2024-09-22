@@ -46,7 +46,7 @@ def evaluate_clustering(X_scaled, labels):
     print(f'Silhouette Score: {sil_score:.2f}')
 
 def main():
-    X_scaled, X = preprocess_data('Mall_customers.csv')
+    X_scaled, X = preprocess_data('Mall_Customers.csv')
 
     clustering_strategy = SpectralClusteringStrategy(n_clusters=5)
 
